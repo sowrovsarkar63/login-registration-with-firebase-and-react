@@ -1,4 +1,9 @@
-import { createUserWithEmailAndPassword, getAuth } from "firebase/auth";
+import {
+    createUserWithEmailAndPassword,
+    getAuth,
+    sendEmailVerification,
+    signInWithEmailAndPassword,
+} from "firebase/auth";
 import { useState } from "react";
 import { Button, Form } from "react-bootstrap";
 import "./App.css";
@@ -9,6 +14,10 @@ function App() {
     const [Email, setEmail] = useState("");
     const [Password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [Islogin, setIslogin] = useState(false);
+    initializeFireBaseApp(); //initialize app
+    // password authentication with firebase
+    const auth = getAuth();
 
     // form handling
 
@@ -18,15 +27,16 @@ function App() {
     const handlePasswordChange = (e) => {
         setPassword(e.target.value);
     };
+    // toggle loging
+    const toggleLogin = (e) => {
+        setIslogin(e.target.checked);
+    };
+
     const handleRegistration = (e) => {
         e.preventDefault();
 
         // fire base authentication
 
-        initializeFireBaseApp(); //initialize app
-
-        // password authentication with firebase
-        const auth = getAuth();
         if (Password.length < 6) {
             setError("Password Must Be At Least 6 Character");
             return;
@@ -39,24 +49,57 @@ function App() {
         } else {
             setError("");
         }
-        createUserWithEmailAndPassword(auth, Email, Password)
-            .then((result) => {
-                // Signed in
-                const user = result.user;
-                console.log(user);
-                setError("");
-                // ...
-            })
-            .catch((error) => {
-                const errorMessage = error.message;
-                setError(errorMessage);
-            });
-    };
 
+        // Registration
+        const RegisterUser = (email, password) => {
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((result) => {
+                    // Signed in
+                    const user = result.user;
+                    console.log(user);
+                    setError("");
+                    VerifyEmail();
+                    // ...
+                })
+                .catch((error) => {
+                    const errorMessage = error.message;
+                    setError(errorMessage);
+                });
+        };
+
+        // login proccesing
+        const SignInUser = (email, password) => {
+            signInWithEmailAndPassword(auth, email, password)
+                .then((result) => {
+                    // Signed in
+                    const user = result.user;
+
+                    console.log(user);
+                    setError("");
+
+                    // ...
+                })
+                .catch((error) => {
+                    const errorMessage = error.message;
+                    setError(errorMessage);
+                });
+        };
+
+        Islogin ? SignInUser(Email, Password) : RegisterUser(Email, Password);
+    };
+    // send verification link in email
+    const VerifyEmail = () => {
+        sendEmailVerification(auth.currentUser).then(() => {
+            console.log("Email Sent");
+        });
+    };
     return (
         <div className="App">
             <div className="form-container w-50 d-flex justify-content-end mt-5 ">
                 <Form onSubmit={handleRegistration}>
+                    <h3 className="text-primary">
+                        Please {Islogin ? "Login" : "Register"}
+                    </h3>
                     <Form.Group className="mb-3" controlId="formBasicEmail">
                         <Form.Label>Email address</Form.Label>
                         <Form.Control
@@ -81,10 +124,14 @@ function App() {
                         <p className="text-danger">{error}</p>
                     </Form.Group>
                     <Form.Group className="mb-3" controlId="formBasicCheckbox">
-                        <Form.Check type="checkbox" label="Check me out" />
+                        <Form.Check
+                            onChange={toggleLogin}
+                            type="checkbox"
+                            label="Already Registered ?"
+                        />
                     </Form.Group>
                     <Button variant="primary" type="submit">
-                        Register
+                        {Islogin ? "Login" : "Register"}
                     </Button>
                 </Form>
             </div>
